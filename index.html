@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>조별 프로젝트 링크</title>
+<style>
+  :root {
+    --bg: #F4F3EF;
+    --card: #FFFFFF;
+    --ink: #17171A;
+    --muted: #5E5E66;
+    --line: #DEDCD5;
+    --accent: #2F57C9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141416;
+      --card: #1E1E22;
+      --ink: #EDEDF0;
+      --muted: #A0A0AA;
+      --line: #2E2E34;
+      --accent: #8FA8FF;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", sans-serif;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 56px 16px 64px; }
+  h1 { margin: 0 0 6px; font-size: 28px; }
+  .sub { margin: 0 0 32px; color: var(--muted); }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+  .team {
+    --team: var(--accent);
+    display: flex; align-items: center; gap: 16px;
+    min-height: 68px;
+    padding: 20px 22px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 6px solid var(--team);
+    border-radius: 12px;
+    color: inherit; text-decoration: none;
+    transition: background-color .2s, border-color .2s, color .2s, transform .2s;
+  }
+  a.team:hover,
+  a.team:focus-visible {
+    background: var(--team);
+    border-color: var(--team);
+    color: #FFFFFF;
+    transform: translateY(-2px);
+  }
+  a.team:hover .num,
+  a.team:focus-visible .num { color: rgba(255, 255, 255, .8); }
+  a.team:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  .team.empty {
+    border: 2px dashed var(--line);
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .num { color: var(--muted); font-size: 14px; min-width: 2ch; transition: color .2s; }
+  .name { flex: 1; min-width: 0; font-size: 19px; font-weight: 700; }
+  .empty .name { font-weight: 500; }
+</style>
+</head>
+<body>
+<main>
+  <h1>조별 프로젝트 링크</h1>
+  <p class="sub">팀 이름을 누르면 새 탭에서 결과물이 열립니다.</p>
+  <ul id="list"></ul>
+</main>
+
+<script>
+  // 조별링크.csv 내용 (파일을 직접 열었을 때도 보이도록 내장)
+  const FALLBACK_CSV = `team, link
+라이프사이클, https://day41-nine.vercel.app/ex003.html
+코린이즈, https://colinizteam.pages.dev/
+빵파티, https://bbang-party.dladntjr26.workers.dev/`;
+
+  // 전체 자리 수와 자리별 팀 색 (흰 글씨가 잘 보이는 진한 색)
+  const SLOTS = 5;
+  const TEAM_COLORS = ['#2F57C9', '#C2362B', '#1E7A4F', '#6D3FC0', '#0F6E7A'];
+
+  function parseCsv(text) {
+    return text.trim().split(/\r?\n/).slice(1)
+      .map(line => {
+        const i = line.indexOf(',');
+        return { team: line.slice(0, i).trim(), link: line.slice(i + 1).trim() };
+      })
+      .filter(row => row.team && /^https?:\/\//.test(row.link));
+  }
+
+  function render(rows) {
+    const list = document.getElementById('list');
+    list.innerHTML = '';
+    const count = Math.max(SLOTS, rows.length);
+
+    for (let idx = 0; idx < count; idx++) {
+      const row = rows[idx];
+      const li = document.createElement('li');
+      const card = document.createElement(row ? 'a' : 'div');
+      card.className = row ? 'team' : 'team empty';
+
+      const num = document.createElement('span');
+      num.className = 'num';
+      num.textContent = String(idx + 1).padStart(2, '0');
+
+      const name = document.createElement('span');
+      name.className = 'name';
+
+      if (row) {
+        card.href = row.link;
+        card.target = '_blank';
+        card.rel = 'noopener noreferrer';
+        card.style.setProperty('--team', TEAM_COLORS[idx % TEAM_COLORS.length]);
+        name.textContent = row.team;
+      } else {
+        name.textContent = '빈 자리';
+      }
+
+      card.append(num, name);
+      li.append(card);
+      list.append(li);
+    }
+  }
+
+  // 서버로 열면 CSV를 새로 읽고, 실패하면 내장 데이터 사용
+  fetch('조별링크.csv', { cache: 'no-store' })
+    .then(res => res.ok ? res.text() : Promise.reject())
+    .then(text => render(parseCsv(text)))
+    .catch(() => render(parseCsv(FALLBACK_CSV)));
+</script>
+</body>
+</html>
